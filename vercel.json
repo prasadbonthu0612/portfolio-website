@@ -13,6 +13,9 @@
     }
   ],
   "env": {
-    "FLASK_ENV": "production"
+    "FLASK_ENV": "production",
+    "SUPABASE_URL": "https://gtjookapwwtzshofxeur.supabase.co",
+    "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0am9va2Fwd3d0enNob2Z4ZXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA1ODU4MjksImV4cCI6MjA2NjE2MTgyOX0.6Bw2_nD-61NVFf58iZmieMCJbkmaKSVy2UCz_DlDGCA",
+    "SECRET_KEY": "your-secret-key-here-change-in-production"
   }
 } 

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, Response
 from supabase.client import create_client, Client
 import os
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -6,9 +6,14 @@ from werkzeug.utils import secure_filename
 import json
 import uuid
 from datetime import datetime
+from dotenv import load_dotenv
+import base64
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-here-change-in-production'
+app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-here-change-in-production')
 
 # Configure upload folder
 UPLOAD_FOLDER = 'static/uploads'
@@ -25,9 +30,9 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# Supabase configuration - using your credentials directly
-url = "https://gtjookapwwtzshofxeur.supabase.co"
-key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0am9va2Fwd3d0enNob2Z4ZXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA1ODU4MjksImV4cCI6MjA2NjE2MTgyOX0.6Bw2_nD-61NVFf58iZmieMCJbkmaKSVy2UCz_DlDGCA"
+# Supabase configuration - using environment variables
+url = os.getenv('SUPABASE_URL', "https://gtjookapwwtzshofxeur.supabase.co")
+key = os.getenv('SUPABASE_ANON_KEY', "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0am9va2Fwd3d0enNob2Z4ZXVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA1ODU4MjksImV4cCI6MjA2NjE2MTgyOX0.6Bw2_nD-61NVFf58iZmieMCJbkmaKSVy2UCz_DlDGCA")
 supabase: Client = create_client(url, key)
 
 @app.route('/')
@@ -154,9 +159,26 @@ def update_profile():
     
     try:
         data = request.json
-        response = supabase.table('profile').update(data).eq('id', 1).execute()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+            
+        print(f"Updating profile with data: {data}")
+        
+        # Check if profile exists, if not create it
+        profile_response = supabase.table('profile').select('*').limit(1).execute()
+        
+        if not profile_response.data:
+            # Create new profile
+            response = supabase.table('profile').insert(data).execute()
+            print(f"Created new profile: {response.data}")
+        else:
+            # Update existing profile
+            response = supabase.table('profile').update(data).eq('id', profile_response.data[0]['id']).execute()
+            print(f"Updated existing profile: {response.data}")
+        
         return jsonify({'success': True, 'data': response.data})
     except Exception as e:
+        print(f"Error updating profile: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/skills', methods=['POST'])
@@ -373,7 +395,7 @@ def delete_experience(exp_id):
 
 @app.route('/api/profile/image', methods=['POST'])
 def upload_profile_image():
-    """Upload profile image"""
+    """Upload profile image - simplified to use external URLs"""
     if not session.get('admin_logged_in'):
         return jsonify({'error': 'Unauthorized'}), 401
     
@@ -392,50 +414,45 @@ def upload_profile_image():
         if not allowed_file(file.filename):
             return jsonify({'error': 'File type not allowed. Please upload PNG, JPG, JPEG, GIF, or WEBP'}), 400
         
-        # Generate unique filename
-        filename = secure_filename(file.filename)
-        unique_filename = f"{uuid.uuid4().hex}_{filename}"
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-        
-        # Save file
-        file.save(filepath)
-        
-        # Generate URL for the uploaded image
-        image_url = f"/static/uploads/{unique_filename}"
-        
-        # Update profile with new image URL
-        supabase.table('profile').update({'profile_image': image_url}).eq('id', 1).execute()
-        
+        # For now, return a message to use external URL
         return jsonify({
-            'success': True, 
-            'image_url': image_url,
-            'message': 'Profile image uploaded successfully'
-        })
+            'success': False,
+            'message': 'Please use the "Or use external image URL" option below. Upload your image to a service like postimages.org and paste the direct link.',
+            'fallback_url': '/static/images/default-avatar.svg'
+        }), 400
         
     except Exception as e:
+        print(f"Error uploading image: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/profile/image', methods=['DELETE'])
 def delete_profile_image():
-    """Delete profile image"""
+    """Delete profile image from database"""
     if not session.get('admin_logged_in'):
         return jsonify({'error': 'Unauthorized'}), 401
     
     try:
         # Get current profile to find existing image
-        profile_response = supabase.table('profile').select('profile_image').eq('id', 1).execute()
+        profile_response = supabase.table('profile').select('profile_image').limit(1).execute()
         
         if profile_response.data and profile_response.data[0].get('profile_image'):
             current_image_url = profile_response.data[0]['profile_image']
             
-            # Remove image file if it exists
-            if current_image_url.startswith('/static/uploads/'):
-                image_path = current_image_url.replace('/static/', 'static/')
-                if os.path.exists(image_path):
-                    os.remove(image_path)
+            # Try to delete from database if it's a database URL
+            if current_image_url.startswith('/api/profile/image/'):
+                try:
+                    image_id = current_image_url.split('/')[-1]
+                    supabase.table('profile_images').delete().eq('id', image_id).execute()
+                    print(f"Deleted image from database: {image_id}")
+                except Exception as db_error:
+                    print(f"Database deletion error (non-critical): {db_error}")
         
         # Update profile to remove image URL
-        supabase.table('profile').update({'profile_image': None}).eq('id', 1).execute()
+        if profile_response.data:
+            supabase.table('profile').update({'profile_image': None}).eq('id', profile_response.data[0]['id']).execute()
+        else:
+            # Create new profile if none exists
+            supabase.table('profile').insert({'profile_image': None}).execute()
         
         return jsonify({
             'success': True,
@@ -443,6 +460,7 @@ def delete_profile_image():
         })
         
     except Exception as e:
+        print(f"Error removing profile image: {e}")
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':

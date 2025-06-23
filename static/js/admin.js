@@ -249,6 +249,8 @@ document.addEventListener('DOMContentLoaded', function() {
             linkedin_url: document.getElementById('profile-linkedin').value
         };
         
+        console.log('Saving profile with data:', profileData);
+        
         fetch('/api/profile', {
             method: 'PUT',
             headers: {
@@ -256,8 +258,12 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: JSON.stringify(profileData)
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log('Response status:', response.status);
+            return response.json();
+        })
         .then(data => {
+            console.log('Response data:', data);
             if (data.success) {
                 showNotification('Profile updated successfully!', 'success');
             } else {
@@ -265,6 +271,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         })
         .catch(error => {
+            console.error('Error saving profile:', error);
             showNotification('Error updating profile: ' + error.message, 'error');
         });
     };
@@ -763,4 +770,49 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+    
+    // Update profile image URL manually
+    window.updateProfileImageUrl = function() {
+        const imageUrl = document.getElementById('profile-image-url').value.trim();
+        
+        if (!imageUrl) {
+            showNotification('Please enter a valid image URL', 'error');
+            return;
+        }
+        
+        // Validate URL
+        try {
+            new URL(imageUrl);
+        } catch (e) {
+            showNotification('Please enter a valid URL', 'error');
+            return;
+        }
+        
+        // Update preview
+        document.getElementById('profile-image-preview').src = imageUrl;
+        
+        // Update database
+        const profileData = {
+            profile_image: imageUrl
+        };
+        
+        fetch('/api/profile', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(profileData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Profile image updated successfully!', 'success');
+            } else {
+                showNotification('Error updating profile image: ' + data.error, 'error');
+            }
+        })
+        .catch(error => {
+            showNotification('Error updating profile image: ' + error.message, 'error');
+        });
+    };
 }); 

@@ -681,4 +681,45 @@ body {
     font-size: 0.875rem;
     color: #6b7280;
     margin-top: 0.5rem;
+}
+
+/* Manual URL Section */
+.manual-url-section {
+    margin-top: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.manual-url-section h4 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    color: #495057;
+}
+
+.url-input-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.url-input-group input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.url-input-group button {
+    white-space: nowrap;
+    padding: 8px 16px;
+}
+
+.url-hint {
+    margin: 0;
+    font-size: 12px;
+    color: #6c757d;
+    font-style: italic;
 } 
