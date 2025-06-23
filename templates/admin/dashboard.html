@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Portfolio</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fas fa-tachometer-alt"></i> Dashboard</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="#profile" class="nav-link active" data-section="profile">
+                        <i class="fas fa-user"></i> Profile
+                    </a></li>
+                    <li><a href="#skills" class="nav-link" data-section="skills">
+                        <i class="fas fa-code"></i> Skills
+                    </a></li>
+                    <li><a href="#projects" class="nav-link" data-section="projects">
+                        <i class="fas fa-project-diagram"></i> Projects
+                    </a></li>
+                    <li><a href="#experience" class="nav-link" data-section="experience">
+                        <i class="fas fa-briefcase"></i> Experience
+                    </a></li>
+                    <li><a href="#certifications" class="nav-link" data-section="certifications">
+                        <i class="fas fa-certificate"></i> Certifications
+                    </a></li>
+                </ul>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="/admin/logout" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+                <a href="/" target="_blank" class="view-site-btn">
+                    <i class="fas fa-external-link-alt"></i> View Site
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <h1 id="section-title">Profile Settings</h1>
+                <div class="user-info">
+                    <span>Welcome, {{ session.admin_username }}</span>
+                </div>
+            </header>
+
+            <!-- Profile Section -->
+            <section id="profile" class="content-section active">
+                <div class="section-header">
+                    <h2>Profile Information</h2>
+                    <button class="btn btn-primary" onclick="saveProfile()">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+                
+                <!-- Profile Image Section -->
+                <div class="profile-image-section">
+                    <h3>Profile Picture</h3>
+                    <div class="image-upload-container">
+                        <div class="current-image">
+                            <img id="profile-image-preview" src="{{ profile.profile_image or url_for('static', filename='images/default-avatar.svg') }}" alt="Profile Picture">
+                        </div>
+                        <div class="image-upload-controls">
+                            <input type="file" id="profile-image-input" accept="image/*" style="display: none;">
+                            <button type="button" class="btn btn-secondary" onclick="document.getElementById('profile-image-input').click()">
+                                <i class="fas fa-upload"></i> Choose Image
+                            </button>
+                            <button type="button" class="btn btn-outline" onclick="removeProfileImage()">
+                                <i class="fas fa-trash"></i> Remove
+                            </button>
+                            <p class="upload-hint">Recommended: Square image, 400x400px or larger</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="profile-name">Full Name</label>
+                        <input type="text" id="profile-name" value="{{ profile.name or '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="profile-title">Title</label>
+                        <input type="text" id="profile-title" value="{{ profile.title or '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="profile-subtitle">Subtitle</label>
+                        <input type="text" id="profile-subtitle" value="{{ profile.subtitle or '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="profile-email">Email</label>
+                        <input type="email" id="profile-email" value="{{ profile.email or '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="profile-phone">Phone</label>
+                        <input type="text" id="profile-phone" value="{{ profile.phone or '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="profile-location">Location</label>
+                        <input type="text" id="profile-location" value="{{ profile.location or '' }}">
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="profile-about">About Me</label>
+                        <textarea id="profile-about" rows="4">{{ profile.about or '' }}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="profile-github">GitHub URL</label>
+                        <input type="url" id="profile-github" value="{{ profile.github_url or '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="profile-linkedin">LinkedIn URL</label>
+                        <input type="url" id="profile-linkedin" value="{{ profile.linkedin_url or '' }}">
+                    </div>
+                </div>
+            </section>
+
+            <!-- Skills Section -->
+            <section id="skills" class="content-section">
+                <div class="section-header">
+                    <h2>Skills Management</h2>
+                    <button class="btn btn-primary" onclick="showAddSkillModal()">
+                        <i class="fas fa-plus"></i> Add Skill
+                    </button>
+                </div>
+                <div class="data-grid">
+                    <div class="data-header">
+                        <span>Skill Name</span>
+                        <span>Icon</span>
+                        <span>Proficiency</span>
+                        <span>Actions</span>
+                    </div>
+                    <div id="skills-list">
+                        {% for skill in skills %}
+                        <div class="data-row" data-id="{{ skill.id }}">
+                            <span>{{ skill.name }}</span>
+                            <span><i class="{{ skill.icon }}"></i></span>
+                            <span>{{ skill.proficiency }}%</span>
+                            <div class="actions">
+                                <button class="btn-icon" onclick="editSkill({{ skill.id }})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn-icon btn-danger" onclick="deleteSkill({{ skill.id }})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+
+            <!-- Projects Section -->
+            <section id="projects" class="content-section">
+                <div class="section-header">
+                    <h2>Projects Management</h2>
+                    <button class="btn btn-primary" onclick="showAddProjectModal()">
+                        <i class="fas fa-plus"></i> Add Project
+                    </button>
+                </div>
+                <div class="data-grid">
+                    <div class="data-header">
+                        <span>Project Name</span>
+                        <span>Description</span>
+                        <span>Technologies</span>
+                        <span>Actions</span>
+                    </div>
+                    <div id="projects-list">
+                        {% for project in projects %}
+                        <div class="data-row" data-id="{{ project.id }}">
+                            <span>{{ project.title }}</span>
+                            <span>{{ project.description[:50] }}...</span>
+                            <span>{{ project.technologies or 'N/A' }}</span>
+                            <div class="actions">
+                                <button class="btn-icon" onclick="editProject({{ project.id }})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn-icon btn-danger" onclick="deleteProject({{ project.id }})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+
+            <!-- Experience Section -->
+            <section id="experience" class="content-section">
+                <div class="section-header">
+                    <h2>Experience Management</h2>
+                    <button class="btn btn-primary" onclick="showAddExperienceModal()">
+                        <i class="fas fa-plus"></i> Add Experience
+                    </button>
+                </div>
+                <div class="data-grid">
+                    <div class="data-header">
+                        <span>Position</span>
+                        <span>Company</span>
+                        <span>Period</span>
+                        <span>Actions</span>
+                    </div>
+                    <div id="experience-list">
+                        {% for exp in experience %}
+                        <div class="data-row" data-id="{{ exp.id }}">
+                            <span>{{ exp.position }}</span>
+                            <span>{{ exp.company }}</span>
+                            <span>{{ exp.start_date }} - {{ exp.end_date or 'Present' }}</span>
+                            <div class="actions">
+                                <button class="btn-icon" onclick="editExperience({{ exp.id }})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn-icon btn-danger" onclick="deleteExperience({{ exp.id }})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+
+            <!-- Certifications Section -->
+            <section id="certifications" class="content-section">
+                <div class="section-header">
+                    <h2>Certifications Management</h2>
+                    <button class="btn btn-primary" onclick="showAddCertificationModal()">
+                        <i class="fas fa-plus"></i> Add Certification
+                    </button>
+                </div>
+                <div class="data-grid">
+                    <div class="data-header">
+                        <span>Title</span>
+                        <span>Issuer</span>
+                        <span>Issue Date</span>
+                        <span>Actions</span>
+                    </div>
+                    <div id="certifications-list">
+                        {% for cert in certifications %}
+                        <div class="data-row" data-id="{{ cert.id }}">
+                            <span>{{ cert.title }}</span>
+                            <span>{{ cert.issuer }}</span>
+                            <span>{{ cert.issue_date }}</span>
+                            <div class="actions">
+                                <button class="btn-icon" onclick="editCertification({{ cert.id }})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn-icon btn-danger" onclick="deleteCertification({{ cert.id }})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <!-- Add/Edit Skill Modal -->
+    <div id="skillModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="skillModalTitle">Add New Skill</h3>
+                <span class="close" onclick="closeModal('skillModal')">&times;</span>
+            </div>
+            <form id="skillForm">
+                <div class="form-group">
+                    <label for="skill-name">Skill Name</label>
+                    <input type="text" id="skill-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="skill-icon">Icon Class (FontAwesome)</label>
+                    <input type="text" id="skill-icon" placeholder="fas fa-code">
+                </div>
+                <div class="form-group">
+                    <label for="skill-proficiency">Proficiency (%)</label>
+                    <input type="number" id="skill-proficiency" min="0" max="100" required>
+                </div>
+                <div class="form-group">
+                    <label for="skill-order">Order Index</label>
+                    <input type="number" id="skill-order" min="0" value="0">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('skillModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add/Edit Project Modal -->
+    <div id="projectModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="projectModalTitle">Add New Project</h3>
+                <span class="close" onclick="closeModal('projectModal')">&times;</span>
+            </div>
+            <form id="projectForm">
+                <div class="form-group">
+                    <label for="project-title">Project Title</label>
+                    <input type="text" id="project-title" required>
+                </div>
+                <div class="form-group">
+                    <label for="project-description">Description</label>
+                    <textarea id="project-description" rows="3" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="project-technologies">Technologies (comma-separated)</label>
+                    <input type="text" id="project-technologies" placeholder="HTML, CSS, JavaScript">
+                </div>
+                <div class="form-group">
+                    <label for="project-image">Image URL</label>
+                    <input type="url" id="project-image" placeholder="https://example.com/image.jpg">
+                </div>
+                <div class="form-group">
+                    <label for="project-live-url">Live URL</label>
+                    <input type="url" id="project-live-url" placeholder="https://example.com">
+                </div>
+                <div class="form-group">
+                    <label for="project-github-url">GitHub URL</label>
+                    <input type="url" id="project-github-url" placeholder="https://github.com/username/repo">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('projectModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add/Edit Experience Modal -->
+    <div id="experienceModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="experienceModalTitle">Add New Experience</h3>
+                <span class="close" onclick="closeModal('experienceModal')">&times;</span>
+            </div>
+            <form id="experienceForm">
+                <div class="form-group">
+                    <label for="exp-position">Position</label>
+                    <input type="text" id="exp-position" required>
+                </div>
+                <div class="form-group">
+                    <label for="exp-company">Company</label>
+                    <input type="text" id="exp-company" required>
+                </div>
+                <div class="form-group">
+                    <label for="exp-start-date">Start Date</label>
+                    <input type="date" id="exp-start-date" required>
+                </div>
+                <div class="form-group">
+                    <label for="exp-end-date">End Date</label>
+                    <input type="date" id="exp-end-date">
+                </div>
+                <div class="form-group">
+                    <label for="exp-description">Description</label>
+                    <textarea id="exp-description" rows="4" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="exp-technologies">Technologies (comma-separated)</label>
+                    <input type="text" id="exp-technologies" placeholder="React, Node.js, MongoDB">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('experienceModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add/Edit Certification Modal -->
+    <div id="certificationModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="certificationModalTitle">Add New Certification</h3>
+                <span class="close" onclick="closeModal('certificationModal')">&times;</span>
+            </div>
+            <form id="certificationForm">
+                <div class="form-group">
+                    <label for="cert-title">Certification Title</label>
+                    <input type="text" id="cert-title" required>
+                </div>
+                <div class="form-group">
+                    <label for="cert-issuer">Issuing Organization</label>
+                    <input type="text" id="cert-issuer" required>
+                </div>
+                <div class="form-group">
+                    <label for="cert-issue-date">Issue Date</label>
+                    <input type="date" id="cert-issue-date" required>
+                </div>
+                <div class="form-group">
+                    <label for="cert-icon">Icon Class (FontAwesome)</label>
+                    <input type="text" id="cert-icon" placeholder="fas fa-certificate">
+                </div>
+                <div class="form-group">
+                    <label for="cert-credential-url">Credential URL</label>
+                    <input type="url" id="cert-credential-url" placeholder="https://example.com/credential">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('certificationModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+</body>
+</html> 
